@@ -25,11 +25,12 @@ const cardSchema = new mongoose.Schema({
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'user',
+    },
+  ],
+  createdAt: {
+    type: Date,
+    default: Date.now,
   },
-],
-createdAt: {
-  type: Date,
-}
 }, { versionKey: false });
 
-module.exports = mongoose.model('card', cardSchema):
+module.exports = mongoose.model('card', cardSchema);

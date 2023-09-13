@@ -1,16 +1,8 @@
 const Card = require('../models/card');
 
-const sendStatus400 = function (res, err) {
-  res.status(400).send({ message: `Переданы некорректные данные: ${err.message}` });
-};
-
-const sendStatus404 = function (res) {
-  res.status(404).send({ message: 'Данные не найдены' });
-};
-
-const sendStatus500 = function (res) {
-  res.status(500).send({ message: 'На сервере произошла ошибка' });
-};
+const {
+  sendStatus400, sendStatus404, sendStatus500,
+} = require('../utils/errors');
 
 module.exports.getCards = (req, res) => {
   Card.find({})
@@ -26,7 +18,7 @@ module.exports.addCard = (req, res) => {
       Card.findById(card._id)
         .populate('owner')
         .then((data) => res.status(201).send(data))
-        .catch(() => sendStatus404(res));
+        .catch(() => sendStatus500(res));
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
@@ -36,54 +28,54 @@ module.exports.addCard = (req, res) => {
 };
 
 module.exports.deleteCard = (req, res) => {
-  if (req.params.cardId.length === 24) {
-    Card.findByIdAndRemove(req.params.cardId)
-      .then((card) => {
-        if (!card) {
-          sendStatus404(res);
-          return;
-        }
-        res.send({ message: 'Данные удалены' });
-      })
-      .catch(() => sendStatus500(res));
-  } else {
-    const err = { message: 'Неверный формат Id' };
-    sendStatus400(res, err);
-  }
+  Card.findByIdAndRemove(req.params.cardId)
+    .then((card) => {
+      if (!card) {
+        sendStatus404(res);
+        return;
+      }
+      res.send({ message: 'Данные удалены' });
+    })
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        const castError = { message: 'Неверный формат Id' };
+        sendStatus400(res, castError);
+      } else sendStatus500(res);
+    });
 };
 
 module.exports.likeCard = (req, res) => {
-  if (req.params.cardId.length === 24) {
-    Card.findByIdAndUpdate(req.params.cardId, { $addToSet: { likes: req.user._id } }, { new: true })
-      .populate(['owner', 'likes'])
-      .then((card) => {
-        if (!card) {
-          sendStatus404(res);
-          return;
-        }
-        res.send(card);
-      })
-      .catch(() => sendStatus500(res));
-  } else {
-    const err = { message: 'Неверный формат Id' };
-    sendStatus400(res, err);
-  }
+  Card.findByIdAndUpdate(req.params.cardId, { $addToSet: { likes: req.user._id } }, { new: true })
+    .populate(['owner', 'likes'])
+    .then((card) => {
+      if (!card) {
+        sendStatus404(res);
+        return;
+      }
+      res.send(card);
+    })
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        const castError = { message: 'Неверный формат Id' };
+        sendStatus400(res, castError);
+      } else sendStatus500(res);
+    });
 };
 
-module.exports.unlikeCard = (req, res) => {
-  if (req.params.cardId.length === 24) {
-    Card.findByIdAndUpdate(req.params.cardId, { $pull: { likes: req.user._id } }, { new: true })
-      .populate(['owner', 'likes'])
-      .then((card) => {
-        if (!card) {
-          sendStatus404(res);
-          return;
-        }
-        res.send(card);
-      })
-      .catch(() => sendStatus500(res));
-  } else {
-    const err = { message: 'Неверный формат Id' };
-    sendStatus400(res, err);
-  }
+module.exports.likeCard = (req, res) => {
+  Card.findByIdAndUpdate(req.params.cardId, { $pull: { likes: req.user._id } }, { new: true })
+    .populate(['owner', 'likes'])
+    .then((card) => {
+      if (!card) {
+        sendStatus404(res);
+        return;
+      }
+      res.send(card);
+    })
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        const castError = { message: 'Неверный формат Id' };
+        sendStatus400(res, castError);
+      } else sendStatus500(res);
+    });
 };

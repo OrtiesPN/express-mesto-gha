@@ -62,7 +62,7 @@ module.exports.likeCard = (req, res) => {
     });
 };
 
-module.exports.likeCard = (req, res) => {
+module.exports.unLikeCard = (req, res) => {
   Card.findByIdAndUpdate(req.params.cardId, { $pull: { likes: req.user._id } }, { new: true })
     .populate(['owner', 'likes'])
     .then((card) => {

@@ -1,63 +1,65 @@
 const User = require('../models/user');
+const BadRequestError = require('../errors/bad-request-err');
+const NotFoundError = require('../errors/not-found-error');
 
-const {
-  sendStatus400, sendStatus404, sendStatus500,
-} = require('../utils/errors');
-
-module.exports.addUser = (req, res) => {
+module.exports.addUser = (req, res, next) => {
   const { name, about, avatar } = req.body;
   User.create({ name, about, avatar })
     .then((user) => res.status(201).send(user))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        sendStatus400(res, err);
+        next(new BadRequestError(err.message));
       } else {
-        sendStatus500(res);
+        next(err);
       }
     });
 };
 
-module.exports.getUsers = (req, res) => {
+module.exports.getUsers = (req, res, next) => {
   User.find({})
     .then((users) => res.send(users))
-    .catch(() => sendStatus500(res));
+    .catch(next);
 };
 
-module.exports.getUserById = (req, res) => {
+module.exports.getUserById = (req, res, next) => {
   User.findById(req.params.userId)
+    .orFail()
     .then((user) => {
-      if (!user) {
-        sendStatus404(res);
-        return;
-      }
-      res.send(user);
+      res.send(user); // 200 OK
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        const castError = { message: 'Неверный формат Id' };
-        sendStatus400(res, castError);
-      } else sendStatus500(res);
+        next(new BadRequestError('Некорректный _id пользователя'));
+      } else if (err.name === 'DocumentNotFoundError') {
+        next(new NotFoundError('Такой пользователь не найден'));
+      } else {
+        next(err);
+      }
     });
 };
 
-module.exports.editUserData = (req, res) => {
+module.exports.editUserData = (req, res, next) => {
   const { name, about } = req.body;
   User.findByIdAndUpdate(req.user._id, { name, about }, { new: 'true', runValidators: true })
     .then((user) => res.send(user))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        sendStatus400(res, err);
-      } else sendStatus500(res);
+        next(new BadRequestError(err.message));
+      } else {
+        next(err);
+      }
     });
 };
 
-module.exports.editUserAvatar = (req, res) => {
+module.exports.editUserAvatar = (req, res, next) => {
   const { avatar } = req.body;
   User.findByIdAndUpdate(req.user._id, { avatar }, { new: 'true', runValidators: true })
     .then((user) => res.send(user))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        sendStatus400(res, err);
-      } else sendStatus500(res);
+        next(new BadRequestError(err.message));
+      } else {
+        next(err);
+      }
     });
 };

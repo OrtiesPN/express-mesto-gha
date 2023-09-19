@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
-const { sendPageNotFound } = require('./utils/errors');
+const NotFoundError = require('./errors/not-found-error');
 
 const { PORT = 3000, DB_URL = 'mongodb://localhost:27017/mestodb' } = process.env;
 
@@ -23,10 +23,19 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/users', require('./routes/users'));
-app.use('/cards', require('./routes/cards'));
+app.use('/', require('./routes/index'));
 
-app.use('*', (req, res) => sendPageNotFound(res));
+app.use('*', (req, res) => res.send(new NotFoundError('Такой страницы не существует')));
+
+app.use((err, req, res, next) => {
+  const { statusCode = 500, message } = err;
+  res.status(statusCode).send({
+    message: statusCode === 500
+      ? 'На сервере произошла ошибка'
+      : message,
+  });
+  next();
+});
 
 app.listen(PORT, () => {
 

@@ -1,81 +1,81 @@
 const Card = require('../models/card');
+const BadRequestError = require('../errors/bad-request-err');
+const NotFoundError = require('../errors/not-found-error');
 
-const {
-  sendStatus400, sendStatus404, sendStatus500,
-} = require('../utils/errors');
-
-module.exports.getCards = (req, res) => {
+module.exports.getCards = (req, res, next) => {
   Card.find({})
     .populate(['owner', 'likes'])
     .then((cards) => res.send(cards))
-    .catch(() => sendStatus500(res));
+    .catch(next);
 };
 
-module.exports.addCard = (req, res) => {
+module.exports.addCard = (req, res, next) => {
   const { name, link } = req.body;
   Card.create({ name, link, owner: req.user._id })
     .then((card) => {
-      Card.findById(card._id)
+      Card.findById(card._id) //  себе: Нужен некст?
         .populate('owner')
         .then((data) => res.status(201).send(data))
-        .catch(() => sendStatus500(res));
+        .catch(next);
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        sendStatus400(res, err);
-      } else sendStatus500(res);
+        next(new BadRequestError(err.message));
+      } else {
+        next(err);
+      }
     });
 };
 
-module.exports.deleteCard = (req, res) => {
+module.exports.deleteCard = (req, res, next) => {
   Card.findByIdAndRemove(req.params.cardId)
-    .then((card) => {
-      if (!card) {
-        sendStatus404(res);
-        return;
-      }
+    .orFail()
+    .then(() => {
       res.send({ message: 'Данные удалены' });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        const castError = { message: 'Неверный формат Id' };
-        sendStatus400(res, castError);
-      } else sendStatus500(res);
+        next(new BadRequestError('Некорректный _id карточки'));
+      } else if (err.name === 'DocumentNotFoundError') {
+        next(new NotFoundError('Карточка не найдена'));
+      } else {
+        next(err);
+      }
     });
 };
 
-module.exports.likeCard = (req, res) => {
+module.exports.likeCard = (req, res, next) => {
   Card.findByIdAndUpdate(req.params.cardId, { $addToSet: { likes: req.user._id } }, { new: true })
+    .orFail()
     .populate(['owner', 'likes'])
     .then((card) => {
-      if (!card) {
-        sendStatus404(res);
-        return;
-      }
       res.send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        const castError = { message: 'Неверный формат Id' };
-        sendStatus400(res, castError);
-      } else sendStatus500(res);
+        next(new BadRequestError('Некорректный _id карточки'));
+      } else if (err.name === 'DocumentNotFoundError') {
+        next(new NotFoundError('Карточка не найдена'));
+      } else {
+        next(err);
+      }
     });
 };
 
-module.exports.unLikeCard = (req, res) => {
+module.exports.unLikeCard = (req, res, next) => {
   Card.findByIdAndUpdate(req.params.cardId, { $pull: { likes: req.user._id } }, { new: true })
+    .orFail()
     .populate(['owner', 'likes'])
     .then((card) => {
-      if (!card) {
-        sendStatus404(res);
-        return;
-      }
       res.send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        const castError = { message: 'Неверный формат Id' };
-        sendStatus400(res, castError);
-      } else sendStatus500(res);
+        next(new BadRequestError('Некорректный _id карточки'));
+      } else if (err.name === 'DocumentNotFoundError') {
+        next(new NotFoundError('Карточка не найдена'));
+      } else {
+        next(err);
+      }
     });
 };

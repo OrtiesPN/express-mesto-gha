@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 const NotFoundError = require('./errors/not-found-error');
 
 const { PORT = 3000, DB_URL = 'mongodb://localhost:27017/mestodb' } = process.env;
@@ -10,17 +11,11 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+app.use(cookieParser());
+
 mongoose.connect(DB_URL, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-});
-
-app.use((req, res, next) => {
-  req.user = {
-    _id: '64ff13424314b0eff6797b00',
-  };
-
-  next();
 });
 
 app.use('/', require('./routes/index'));

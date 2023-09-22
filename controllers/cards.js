@@ -1,6 +1,7 @@
 const Card = require('../models/card');
 const BadRequestError = require('../errors/bad-request-err');
 const NotFoundError = require('../errors/not-found-error');
+const ForbiddenError = require('../errors/forbidden-err');
 
 module.exports.getCards = (req, res, next) => {
   Card.find({})
@@ -13,7 +14,7 @@ module.exports.addCard = (req, res, next) => {
   const { name, link } = req.body;
   Card.create({ name, link, owner: req.user._id })
     .then((card) => {
-      Card.findById(card._id) //  себе: Нужен некст?
+      Card.findById(card._id)
         .populate('owner')
         .then((data) => res.status(201).send(data))
         .catch(next);
@@ -28,10 +29,19 @@ module.exports.addCard = (req, res, next) => {
 };
 
 module.exports.deleteCard = (req, res, next) => {
-  Card.findByIdAndRemove(req.params.cardId)
+  Card.findById(req.params.cardId)
     .orFail()
-    .then(() => {
-      res.send({ message: 'Данные удалены' });
+    .then((card) => {
+      if (card.owner !== req.user._id) {
+        throw new ForbiddenError('Нельзя удалять чужие посты');
+      }
+      Card.deleteOne(card)
+        .then(() => {
+          res.send({ message: 'Данные удалены' });
+        })
+        .catch((err) => {
+          next(err);
+        });
     })
     .catch((err) => {
       if (err.name === 'CastError') {

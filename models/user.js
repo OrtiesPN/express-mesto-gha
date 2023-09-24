@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
-const urlRegex = require('../utils/constants');
+// const urlRegex = require('../utils/constants');
 
 const UnauthorizedError = require('../errors/unauthorized-err');
 
@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema({
     default: 'https://pictures.s3.yandex.net/resources/jacques-cousteau_1604399756.png',
     validate: {
       validator(url) {
-        return urlRegex.test(url);
+        validator.isURL(url);
       },
       message: 'Неверный формат URL',
     },

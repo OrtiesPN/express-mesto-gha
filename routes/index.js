@@ -13,6 +13,6 @@ router.use(auth);
 router.use('/users', routeUsers);
 router.use('/cards', routeCards);
 
-router.use('*', (req, res, next) => next(new NotFoundError('Такой страницы не существует')));
+router.use('/*', (req, res, next) => next(new NotFoundError('Такой страницы не существует')));
 
 module.exports = router;
